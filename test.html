@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Image to DataURL</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #fdfdfd; color: #333; }
+        .drop-zone { border: 3px dashed #b4b4b4; border-radius: 8px; padding: 50px 20px; text-align: center; background: #fff; cursor: pointer; transition: all 0.2s ease; }
+        .drop-zone:hover, .drop-zone.hover { border-color: #0076ff; background: #f0f7ff; }
+        textarea { width: 100%; height: 140px; margin-top: 15px; font-family: monospace; font-size: 11px; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; resize: vertical; background: #fafafa; }
+        .preview-box { margin-top: 25px; text-align: center; display: none; }
+        .preview-box img { max-width: 100%; max-height: 250px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        .output-box { margin-top: 25px; display: none; }
+        button { padding: 10px 20px; border: none; background: #0076ff; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px; }
+        button:hover { background: #005ecb; }
+        .error { color: #d32f2f; font-weight: bold; margin-top: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h1>📷 Client-Side Data URL Converter</h1>
+    <p>Works 100% offline. <strong>Paste a screenshot (Ctrl+V / Cmd+V)</strong>, drag-and-drop a file, or click anywhere inside the box to choose an image.</p>
+    
+    <div id="dropZone" class="drop-zone">
+        <p style="margin: 0; font-size: 16px; color: #555;">Drop image here, paste screenshot, or click to browse...</p>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <div class="preview-box" id="previewBox">
+        <strong>Image Preview:</strong><br><br>
+        <img id="imgPreview" src="" alt="Preview">
+    </div>
+
+    <div class="output-box" id="outputBox">
+        <strong>Base64 Data URL:</strong>
+        <textarea id="dataUrlOutput" readonly></textarea>
+        <button id="copyBtn">Copy String</button>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const dataUrlOutput = document.getElementById('dataUrlOutput');
+        const outputBox = document.getElementById('outputBox');
+        const previewBox = document.getElementById('previewBox');
+        const imgPreview = document.getElementById('imgPreview');
+        const errorDiv = document.getElementById('error');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Click to choice file trigger
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) processImage(e.target.files[0]);
+        });
+
+        // Drag & Drop event bindings
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.remove('hover'); });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length) processImage(e.dataTransfer.files[0]);
+        });
+
+        // Screenshot paste event pipeline
+        window.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || window.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') === 0) {
+                    processImage(item.getAsFile());
+                    break;
+                }
+            }
+        });
+
+        // Client-side image parser engine
+        function processImage(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                errorDiv.textContent = 'Error: Please provide a valid image file.';
+                outputBox.style.display = 'none';
+                previewBox.style.display = 'none';
+                return;
+            }
+            errorDiv.textContent = '';
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                
+                dataUrlOutput.value = dataUrl;
+                imgPreview.src = dataUrl;
+                
+                outputBox.style.display = 'block';
+                previewBox.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Copy button execution logic
+        copyBtn.addEventListener('click', () => {
+            dataUrlOutput.select();
+            navigator.clipboard.writeText(dataUrlOutput.value).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => copyBtn.textContent = originalText, 1500);
+            });
+        });
+    </script>
+</body>
+</html>
